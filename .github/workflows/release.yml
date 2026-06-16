@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - pyright-browser
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Get npm cache directory
+        id: npm-cache
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.npm-cache.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - run: npm ci
+
+      - run: npm ci
+        working-directory: packages/pyright-internal
+
+      - run: npm ci
+        working-directory: packages/browser-pyright
+
+      - name: Build worker
+        run: npm run build
+        working-directory: packages/browser-pyright
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./packages/browser-pyright/package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          artifacts: packages/browser-pyright/dist/pyright.worker.js
+          artifactContentType: application/javascript
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
