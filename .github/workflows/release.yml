@@ -41,6 +41,10 @@ jobs:
         run: npm run build
         working-directory: packages/browser-pyright
 
+      - name: Generate typeshed.json
+        run: node create_typeshed_json.mjs
+        working-directory: packages/browser-pyright
+
       - name: Get version
         id: version
         run: |
@@ -52,7 +56,8 @@ jobs:
         with:
           tag: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
-          artifacts: packages/browser-pyright/dist/pyright.worker.js
-          artifactContentType: application/javascript
+          artifacts: |
+            packages/browser-pyright/dist/pyright.worker.js
+            packages/browser-pyright/dist/typeshed.json
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
